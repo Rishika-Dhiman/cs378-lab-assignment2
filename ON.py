@@ -6,11 +6,19 @@ def main():
 
     lines = []
 
-    with open("file_name", "r") as file:
+    def is_num(s):
+        try:
+            float(s)
+            return True
+        except ValueError:
+            return False
+
+    with open(file_name, "r") as file:
         for line in file:
-            if line[0] != '#':
+            if is_num(line.split()[0]):
                 lines.append(line.split());
 
+    print(lines)
 
 
 
