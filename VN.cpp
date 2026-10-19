@@ -19,10 +19,23 @@ struct Neighbour{
     int16_t d;
 }
 
-struct LinkPkt{
+struct Lsp{
     char originID;
     uint32_t seq;
     vector<Neighbour> neighbours;
+}
+vector<uint8_t> buffer;
+void tcp_lsp()
+{
+    uint8_t buff[512];
+    int l=recv(tcp_fd, buff, sizeof buff, 0);
+    if(l<=0)
+    {
+        close(tcp_fd);
+        tcp_fd=-1;
+        return;
+    }
+
 }
 int main(int argc, char** argv)
 {
@@ -65,6 +78,17 @@ int main(int argc, char** argv)
         fd_set rf;
         FD_ZERO(&rf);
         FD_SET(udp_fd, &rf);
-        
+        int max_fd=udp_fd;
+        if(tcp_fd>=0)
+        {
+            FD_SET(tcp_fd,&rf);
+            if(tcp_fd >max_fd)
+            {
+                max_fd=tcp_fd;
+            }
+        }
+        timeval timeout={1,0};
+        select(max_fd+1,&rf, NULL,NULL, &timeout);
+
     }
 }
