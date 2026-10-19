@@ -12,7 +12,7 @@
 
 using namespace std;
 
-struct Neighbour{
+struct Nbr{
     char id ;
     uint32_t ip;
     uint16_t port;
@@ -22,9 +22,15 @@ struct Neighbour{
 struct Lsp{
     char originID;
     uint32_t seq;
-    vector<Neighbour> neighbours;
+    vector<Nbr> Nbrs;
 }
-vector<uint8_t> buffer;
+
+
+bool first_rcvd = false;
+char vn_id = '';
+vector<Nbr> vn_nbrs;
+vector<uint8_t> buffer, last_msg;
+
 void tcp_lsp()
 {
     uint8_t buff[512];
@@ -35,8 +41,31 @@ void tcp_lsp()
         tcp_fd=-1;
         return;
     }
+    buffer.insert(buffer.end(), buff, buff + l);
+    while(!buffer.empty()){
+        size_t n = buffer[0], total = 1 + 9 * n;
+        if (buffer.size() < total) break;
+        vector<uint8_t> msg(buffer.begin(), buffer.begin() + total);
+        buffer.erase(buffer.begin(), buffer.begin() + total);
+        if (msg == last_msg) continue;
+        last_msg = msg;
+
+        vn_nbrs.clear();
+        for (size_t i = 0; i < n; i++){
+            uint8_t* p = &msg[1 + 9 * i];
+            Nbr e;
+            e.id = p[0];
+            memcpy(&e.ip, p+1, 4);
+            e.port = ((p+5)[0] << 8) | (p+5)[1];
+            e.d = (int16_t)((p+7)[0] << 8) | (p+7)[1];
+            if (e.d == 0) vn_id = e.id;
+            else vn_nbrs.push_back(e);
+        }
+        first_rcvd = true;
+    }
 
 }
+
 int main(int argc, char** argv)
 {
     in_addr on_ip, vn_ip;
