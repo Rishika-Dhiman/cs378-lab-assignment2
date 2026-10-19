@@ -22,14 +22,28 @@ struct Nbr{
 struct Lsp{
     char originID;
     uint32_t seq;
-    vector<Nbr> Nbrs;
+    vector<Nbr> nbrs;
 }
 
 
 bool first_rcvd = false;
 char vn_id = '';
+uint32_t vn_seq = 0;
+map<char, Lsp> ls_map;
 vector<Nbr> vn_nbrs;
 vector<uint8_t> buffer, last_msg;
+
+void send_to_all(vector<uint8_t>& pkt, sockaddr_in* src){
+    for (int i = 0; i < (int)vn_nbrs.size(); i++){
+        sockaddr_in nbr_sock;
+        memset(&nbr_sock, 0, sizeof nbr_sock);
+        nbr_sock.sin_family = AF_INET;
+        nbr_sock.sin_port = htons(vn_nbrs[i].port);
+        nbr_sock.sin_addr.s_addr = vn_nbrs[i].ip;
+        if(src &&src->sin_addr.s_addr == nbr_sock.sin_addr.s_addr && src->sin_port == nbr_sock.sin_port) continue;
+        sendto(udp_fd, pkt.data(), pkt.size(), 0, (sockaddr*)&nbr_sock, sizeof nbr_sock);
+    }
+}
 
 void tcp_lsp()
 {
@@ -64,6 +78,27 @@ void tcp_lsp()
         first_rcvd = true;
     }
 
+}
+
+void udp_lsp(uint8_t* buff, size_t l, sockaddr_in& src){
+    if (l < 6 || l != 6 + 9 * (size_t)buff[5]) return;
+    char cur_id = buff[0];
+    if (cur_id < 'A' || cur_id > 'Z') return;
+    Lsp l;
+    l.seq = get32(buff+1);
+    for (size_t i = 0; i < buff[5]; i++){
+        uint8_t* p = buff + 6 + i*9;
+        Nbr e;
+        e.id = p[0];
+        memcpy(&e.ip, p+1, 4);
+        e.port = ((p+5)[0] << 8) | (p+5)[1];
+        e.d = (int16_t)((p+7)[0] << 8) | (p+7)[1];
+        l.nbrs.push_back(e);
+    }
+    map<char, Lsp>::iterator it = ls_map.find(cur_id);
+    if (it != ls_map.end() && l.seq <= it->second.seq) return;
+    ls_map[cur_id] = l;
+    send_to_all(vector<uint8_t>(buff, buff + l), &src);
 }
 
 int main(int argc, char** argv)
@@ -118,6 +153,6 @@ int main(int argc, char** argv)
         }
         timeval timeout={1,0};
         select(max_fd+1,&rf, NULL,NULL, &timeout);
-
+        if (tcp_fd >= 0 && FD_ISSET(tcp_fd, &rf)) tcp_lsp();
     }
 }
