@@ -16,7 +16,6 @@ def get_graph(file_name):
         for line in file:
             if is_num(line.split()[0]):
                 lines.append(line.split());
-
     print(lines)
     
     graph=[[0]* (len(lines)+1) for _ in range(len(lines)+1)]
@@ -25,7 +24,6 @@ def get_graph(file_name):
         for j,cost in enumerate(node):
             graph[i][j+i+1]=lines[i][j]
             graph[j+i+1][i]=lines[i][j]
-
     print(graph)
     return graph
 
@@ -56,7 +54,7 @@ for x in socket.gethostbyname_ex(socket.gethostname())[2]:
             on_ip=x
 on_port=5000
 sock_fd=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-sock_fd.setsockopt(socket.SQL_SOCKET,socket.SQ_REUSEADDR,1)  
+sock_fd.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)  
 sock_fd.bind((on_ip,on_port))
 sock_fd.listen()
 connections=[]
