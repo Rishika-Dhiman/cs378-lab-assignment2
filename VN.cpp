@@ -200,7 +200,7 @@ int main(int argc, char** argv)
         time_t curr=time(NULL);
         if(curr>= next_graph){
             next_graph=curr+10;
-            cout<<"VN id "w<<vn_id<<" graph"<<endl;
+            cout<<"VN id "<<vn_id<<" graph"<<endl;
             for (map<char, Lsp>::iterator it = ls_map.begin(); it!= ls_map.end(); it++){
                 cout<<it->first<<":";
                 for (int i = 0; i < it->second.nbrs.size(); i++){
