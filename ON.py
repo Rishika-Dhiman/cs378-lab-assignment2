@@ -53,7 +53,14 @@ s.connect(("8.8.8.8", 80))
 on_ip = s.getsockname()[0]
 s.close()
 
-on_port=5000
+
+def find_port(ip):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((ip, 0))
+        return s.getsockname()[1]
+
+on_port = find_port(on_ip)
+
 print("ON ip: "+ on_ip + "ON port: " + str(on_port))
 sock_fd=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 sock_fd.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)  
