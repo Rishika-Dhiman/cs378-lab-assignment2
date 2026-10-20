@@ -36,6 +36,7 @@ vector<uint8_t> buffer, last_msg;
 time_t next_lsp=0;
 
 void send_to_all(const vector<uint8_t>& pkt, sockaddr_in* src){
+    
     for (int i = 0; i < (int)vn_nbrs.size(); i++){
         sockaddr_in nbr_sock;
         memset(&nbr_sock, 0, sizeof nbr_sock);
@@ -45,6 +46,7 @@ void send_to_all(const vector<uint8_t>& pkt, sockaddr_in* src){
         if(src &&src->sin_addr.s_addr == nbr_sock.sin_addr.s_addr && src->sin_port == nbr_sock.sin_port) continue;
         sendto(udp_fd, pkt.data(), pkt.size(), 0, (sockaddr*)&nbr_sock, sizeof nbr_sock);
     }
+    cout<<"VN id "<<vn_id<<" sending LS pkts"<<endl;
 }
 
 void new_vn_lsp(){
@@ -66,9 +68,9 @@ void new_vn_lsp(){
         uint8_t* ip=(uint8_t*)&n.ip;
         p.insert(p.end(),ip,ip+4);
         p.push_back(n.port>>8);
-        p.push_back(n.port && 0xff);
+        p.push_back(n.port & 0xff);
         p.push_back((uint16_t)n.d>>8);
-        p.push_back((uint16_t)n.d && 0xff);
+        p.push_back((uint16_t)n.d & 0xff);
     }
     send_to_all(p,NULL);
     next_lsp=time(NULL)+15;
@@ -105,7 +107,9 @@ void tcp_lsp()
             if (e.d == 0) vn_id = e.id;
             else vn_nbrs.push_back(e);
         }
+        cout<<"VN id "<<vn_id<<" rcvd msg from ON"<<endl;
         first_rcvd = true;
+        new_vn_lsp();
     }
 
 }
@@ -115,7 +119,7 @@ void udp_lsp(uint8_t* buff, size_t l, sockaddr_in& src){
     char cur_id = buff[0];
     if (cur_id < 'A' || cur_id > 'Z') return;
     Lsp lsp;
-    lsp.seq = ((uint32_t)(buff+1)[0] << 24) | ((buff+1)[1]<<16) | ((buff+1)[2] <<8) | (buff+1)[3];
+    lsp.seq = ((uint32_t)buff[1] << 24) | (buff[2]<<16) | (buff[3] <<8) | buff[4];
     for (size_t i = 0; i < buff[5]; i++){
         uint8_t* p = buff + 6 + i*9;
         Nbr e;
@@ -160,11 +164,12 @@ int main(int argc, char** argv)
 
     tcp_fd = socket(AF_INET, SOCK_STREAM, 0);
     connect(tcp_fd, (sockaddr*)&addr, sizeof addr);
-    vector<int> connect_msg;
+    vector<uint8_t> connect_msg;
     uint8_t* ip = (uint8_t*)&vn_ip.s_addr;
     connect_msg.insert(connect_msg.end(), ip, ip+4);
     connect_msg.push_back(vn_port >> 8);
     connect_msg.push_back(vn_port & 0xff);
+    cout<<"VN id "<<vn_id<<" sending connect msg"<<endl;
     send(tcp_fd, connect_msg.data(), connect_msg.size(), 0);
 
     time_t next_graph = time(NULL) + 15;
@@ -193,7 +198,17 @@ int main(int argc, char** argv)
             if(l>0) udp_lsp(buff, l, src);
         }
         time_t curr=time(NULL);
-        if(curr>= next_graph) next_graph=curr+10;
+        if(curr>= next_graph){
+            next_graph=curr+10;
+            cout<<"VN id "w<<vn_id<<" graph"<<endl;
+            for (map<char, Lsp>::iterator it = ls_map.begin(); it!= ls_map.end(); it++){
+                cout<<it->first<<":";
+                for (int i = 0; i < it->second.nbrs.size(); i++){
+                    cout<<" "<<it->second.nbrs[i].id<<"="<<it->second.nbrs[i].d;
+                }
+                cout<<endl;
+            }
+        }
         if(first_rcvd && curr>=next_lsp) new_vn_lsp();
     }
 }

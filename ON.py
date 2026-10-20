@@ -12,11 +12,11 @@ def is_num(s):
         return False
 
 def get_graph(file_name):
+    lines = []
     with open(file_name, "r") as file:
         for line in file:
             if is_num(line.split()[0]):
-                lines.append(line.split());
-    print(lines)
+                lines.append([int(x) for x in line.split()])
     
     graph=[[0]* (len(lines)+1) for _ in range(len(lines)+1)]
     for i,node in enumerate(lines):
@@ -44,15 +44,17 @@ def link_state_pkt(graph, i, vns):
 
 
 file_name = sys.argv[1]
-lines = []
 
 graph = get_graph(file_name)
 
 on_ip=""
-for x in socket.gethostbyname_ex(socket.gethostname())[2]:
-        if not x.startswith("127.")and x != "0.0.0.0":
-            on_ip=x
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("8.8.8.8", 80))
+on_ip = s.getsockname()[0]
+s.close()
+
 on_port=5000
+print("ON ip: "+ on_ip + "ON port: " + str(on_port))
 sock_fd=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 sock_fd.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)  
 sock_fd.bind((on_ip,on_port))
@@ -70,10 +72,15 @@ while True:
         if len(connections) == len(graph):
             for i in range(len(graph)):
                 connections[i].sendall(link_state_pkt(graph, i, vns))
+                
+                print("Sent LS msg to VN id: "+ str(chr(i+65)))
 
     if len(connections) == len(graph) and os.path.getmtime(file_name) != mtime:
+        print("Config file changed")
         mtime = os.path.getmtime(file_name)
+        graph = []
         graph = get_graph(file_name)
         for i in range(len(graph)):
             connections[i].sendall(link_state_pkt(graph, i, vns))
+            print("Sent LS msg to VN id: "+ str(chr(i+65)))
 
