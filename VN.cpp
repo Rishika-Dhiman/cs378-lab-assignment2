@@ -96,7 +96,7 @@ void tcp_lsp()
         buffer.erase(buffer.begin(), buffer.begin() + total);
         if (msg == last_msg){ 
             cout<<"VN id "<<vn_id<<" ignored the msg rcvd from ON"<<endl;
-            continue
+            continue;
         };
         last_msg = msg;
 
