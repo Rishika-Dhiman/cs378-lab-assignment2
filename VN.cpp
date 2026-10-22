@@ -87,13 +87,17 @@ void tcp_lsp()
         tcp_fd=-1;
         return;
     }
+    cout<<"VN id "<<vn_id<<" rcvd msg from ON"<<endl;
     buffer.insert(buffer.end(), buff, buff + l);
     while(!buffer.empty()){
         size_t n = buffer[0], total = 1 + 9 * n;
         if (buffer.size() < total) break;
         vector<uint8_t> msg(buffer.begin(), buffer.begin() + total);
         buffer.erase(buffer.begin(), buffer.begin() + total);
-        if (msg == last_msg) continue;
+        if (msg == last_msg){ 
+            cout<<"VN id "<<vn_id<<" ignored the msg rcvd from ON"<<endl;
+            continue
+        };
         last_msg = msg;
 
         vn_nbrs.clear();
@@ -107,7 +111,7 @@ void tcp_lsp()
             if (e.d == 0) vn_id = e.id;
             else vn_nbrs.push_back(e);
         }
-        cout<<"VN id "<<vn_id<<" rcvd msg from ON"<<endl;
+        
         first_rcvd = true;
         new_vn_lsp();
     }
