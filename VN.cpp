@@ -143,7 +143,7 @@ int main(int argc, char** argv)
     sockaddr_in addr;
     memset(&addr, 0, sizeof addr);
     addr.sin_family=AF_INET;
-    addr.sin_port=htons(argv[2]);
+    addr.sin_port=htons(atoi(argv[2]));
     addr.sin_addr=on_ip;
 
     int temp_fd=socket(AF_INET, SOCK_DGRAM, 0);
