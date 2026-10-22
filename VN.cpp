@@ -46,7 +46,6 @@ void send_to_all(const vector<uint8_t>& pkt, sockaddr_in* src){
         if(src &&src->sin_addr.s_addr == nbr_sock.sin_addr.s_addr && src->sin_port == nbr_sock.sin_port) continue;
         sendto(udp_fd, pkt.data(), pkt.size(), 0, (sockaddr*)&nbr_sock, sizeof nbr_sock);
     }
-    cout<<"VN id "<<vn_id<<" sending LS pkts"<<endl;
 }
 
 void new_vn_lsp(){
@@ -73,6 +72,7 @@ void new_vn_lsp(){
         p.push_back((uint16_t)n.d & 0xff);
     }
     send_to_all(p,NULL);
+    cout<<"VN id "<<vn_id<<" sending own LS pkt seq. no.: "<<lsp.seq<<endl;
     next_lsp=time(NULL)+15;
 }
 
@@ -137,6 +137,7 @@ void udp_lsp(uint8_t* buff, size_t l, sockaddr_in& src){
     if (it != ls_map.end() && lsp.seq <= it->second.seq) return;
     ls_map[cur_id] = lsp;
     send_to_all(vector<uint8_t>(buff, buff + l), &src);
+    cout<<"VN id "<<vn_id<<" forwarded LSP of "<<cur_id<<", seq. no."<<lsp.seq<<endl;
 }
 
 int main(int argc, char** argv)
